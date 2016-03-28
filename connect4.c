@@ -8,6 +8,7 @@
 #include "con4lib.h"
 #include "arupsoldplayer.h"
 #include "human_player.h"
+#include "do_better.h"
 
 int main() {
 
@@ -64,7 +65,7 @@ int main() {
 
             // Time and retrieve the current computer player's move.
             timespent = time(0);
-            curmove = human_move(&game, Ytime);
+            curmove = doBetter(&game, Ytime);
             timespent = time(0) - timespent;
             printf("O, have chosen column %d\n", curmove);
             Ytime -= timespent;
