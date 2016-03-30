@@ -40,6 +40,8 @@ int doBetter(const struct connect4 *game, int secondsleft) {
 
         if (statusCode == X_WINS && me == PLAYERONE)
             weights[firstMove].wi++;
+        else if (statusCode == O_WINS && me == PLAYERTWO)
+            weights[firstMove].wi++;
 
         weights[firstMove].ni++;
     }
