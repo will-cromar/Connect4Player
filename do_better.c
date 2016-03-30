@@ -5,23 +5,15 @@
 #include "do_better.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 int doBetter(const struct connect4 *game, int secondsleft) {
-    /*int i;
-    for(i = 0; i < NUM_COLS; i++) {
-        if (game->board[NUM_ROWS-1][i] == '_') {
-            return i;
-        }
-    }*/
+    struct connect4 tempGame;
+    memcpy(&tempGame, game, sizeof(struct connect4));
 
-    return mcts();
+    return mcts(game);
 }
 
-int mcts() {
-    // Keep a weight for each possible move
-    weight branchWeights[NUM_COLS];
-
-    // More coming soon...
-
-    return 0;
+int mcts(const struct connect4 *game) {
+    
 }
