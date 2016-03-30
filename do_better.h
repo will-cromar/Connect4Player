@@ -14,5 +14,7 @@ typedef struct _proportion {
 } proportion;
 
 int doBetter(const struct connect4 *game, int secondsleft);
+int greatestWeight(proportion weights[NUM_COLS], int t);
+double weightFunction(proportion weight, int t);
 int mcts(const struct connect4 *game);
 int search(proportion *record);
