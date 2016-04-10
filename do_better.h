@@ -10,11 +10,20 @@
 
 // Stores w_i (wins after move i) and n_i (number of simulations after i)
 typedef struct _proportion {
-    int wi, ni;
+    int w_i, n_i;
 } proportion;
 
+// Node of a Monte Carlo tree
+typedef struct _MCnode {
+    struct _proportion scores[NUM_COLS];
+    struct _MCnode *moves[NUM_COLS];
+} MCnode;
+
 int doBetter(const struct connect4 *game, int secondsleft);
-int greatestWeight(proportion weights[NUM_COLS], int t);
-double weightFunction(proportion weight, int t);
-int mcts(const struct connect4 *game);
-int search(proportion *record);
+int bestMove(proportion *scores, int t, int *possibleMoves);
+double UCB(int w_i, int n_i, int t);
+void mcts(const struct connect4 *game, MCnode *root);
+void computeWeightedProbs(double *probabilities, proportion *scores, int t);
+void computeUniformProbs(double *probabilities);
+void freeMCTree(MCnode *root);
+int fast_check_status(const struct connect4 *game);
