@@ -285,3 +285,170 @@ int fast_check_status(const struct connect4 *game) {
     // If we get here, we have a CATS game.
     return CATS;
 }
+
+Locations * CollectWinLocations(const struct connect4 *game, const char player) {
+	int i, j;
+	Locations * temp = new_Locations();
+
+	/* Check if the current position is a 2win or 3win for the player or opponent */
+	for (i = 0; i < NUM_ROWS; i++) {
+		for (j = 0; j < NUM_COLS; j++) {
+			WinType ret = Locations_CheckLocation(temp, game, i, j);
+			if (ret == OUR3WIN) temp->Our3Win = j;
+			if (ret == THEIR3WIN) temp->Their3Win = j;
+			if (ret == OUR2WIN) temp->Our2Win = j;
+			if (ret == THEIR2WIN) temp->Their2Win = j;
+		}
+	}
+	return temp;
+}
+
+Locations * new_Locations(void) {
+	Locations * temp = malloc(sizeof(Locations));
+	//set defaults
+	temp->Our3Win = temp->Our2Win = temp->Their3Win = temp->Their2Win = -1;
+	
+	return temp;
+}
+
+WinType Locations_CheckLocation(Locations * location, const struct connect4 *game, int i, int j) {
+	char currPos = game->board[i][j];
+	int k, l;
+	if (currPos == EMPTY && canMove(game, i, j)) {
+		for (k = 0; k < DXDYLENGTH; k++) {
+			int iPos[7];            
+			int jPos[7];
+			
+			for (l = 0; l < 7; l++) {
+				iPos[l] = i + (l - 3) * DY[k];
+				jPos[l] = j + (l - 3) * DX[k];
+			}
+			
+			int check = is3Win(game, iPos, jPos);
+
+			if (check) {
+				if (check == game->whoseTurn) return OUR3WIN;
+				else return THEIR3WIN;
+			}
+			
+			check = is2Win(game, iPos, jPos);
+			if (check) {
+				if (check == game->whoseTurn) return OUR2WIN;
+				else return THEIR2WIN;
+			}
+		}
+	}
+	return NOWINS;
+}
+
+int isOnBoard(const struct connect4 *game, int i, int j) {
+	return !(i < 0 || j < 0 || j > NUM_ROWS - 1 || i > NUM_COLS - 1);
+}
+
+int canMove(const struct connect4 *game, int i, int j) {
+	if (isOnBoard(game, i, j)) {
+		if (isOnBoard(game, i - 1, j) && !(game->board[i - 1][j] == EMPTY))
+			return 1;
+		if (!isOnBoard(game, i - 1, j))
+			return 1; 
+	}	
+	return 0;
+}
+
+char is3Win(const struct connect4 *game, int * iPos, int * jPos) {
+	int i, j;
+		
+		char us = game->whoseTurn;
+		char them;
+		if (us == 'X') them = 'O';
+		else them = 'X';
+		
+		int theyWon = 0;
+
+		for (j = 0; j < 2; j++) {
+			int check3Us = 0;
+			int check3Them = 0;
+			for (i = 0; i < 3; j++) {
+				int tmp = i + j * 4;
+				if(isOnBoard(game, iPos[tmp], jPos[tmp])) {
+					if (game->board[iPos[tmp]][jPos[tmp]] == us) 
+						check3Us++;
+					else if (game->board[iPos[tmp]][jPos[tmp]] != them)
+						check3Them++;
+				}
+			}
+
+			if (check3Us == 3) return us;
+			if (check3Them == 3) theyWon++; 
+
+		}
+		
+		if (theyWon) return them;
+		
+		return 0;
+}
+
+char is2Win(const struct connect4 *game, int * iPos, int * jPos) {
+	int i, j;		
+	char us = game->whoseTurn;
+	char them;
+	if (us == 'X') them = 'O';
+	else them = 'X';
+	int theyWon = 0;
+
+	for (j = 0; j < 2; j++) {
+		char current;
+		if (j) current = us;
+		else current = them;
+		
+		int flag = 1;
+		for (i = 0; i < 5; i++) {
+			if (!isOnBoard(game, iPos[i], jPos[i])) {
+				 flag = 0;
+				 break;
+			}
+		}
+		
+		if (flag) {
+			if (game->board[iPos[0]][jPos[0]] == EMPTY &&
+				game->board[iPos[1]][jPos[1]] == current &&
+				game->board[iPos[2]][jPos[2]] == current &&
+				game->board[iPos[3]][jPos[3]] == EMPTY &&
+				game->board[iPos[4]][jPos[4]] == EMPTY &&
+				canMove(game, iPos[0], jPos[0]) &&
+				canMove(game, iPos[3], jPos[3]) &&
+				canMove(game, iPos[4], jPos[4]) ) {
+				
+				if (current == us) return us;
+				else theyWon = 1;
+			}	
+		}
+		
+		flag = 1;
+		for (i = 0; i < 5; i++) {
+			if(!isOnBoard(game, iPos[6 - i], jPos[6 - i])) {
+				flag = 0;
+				break;
+			}
+		}
+		
+		if(flag) {
+			if (game->board[iPos[6]][jPos[6]] == EMPTY &&
+				game->board[iPos[5]][jPos[5]] == current &&
+				game->board[iPos[4]][jPos[4]] == current &&
+				game->board[iPos[3]][jPos[3]] == EMPTY &&
+				game->board[iPos[2]][jPos[2]] == EMPTY && 
+				canMove(game, iPos[6], jPos[6]) &&
+				canMove(game, iPos[3], jPos[3]) &&
+				canMove(game, iPos[2], jPos[2])) {
+				
+				if (current == us) return us;
+				else theyWon = 1;
+			}
+				
+		}
+
+	}
+	if (theyWon) return them;
+	return 0;
+}
