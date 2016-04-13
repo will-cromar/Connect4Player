@@ -13,12 +13,15 @@ int doBetter(const struct connect4 *game, int secondsleft) {
     // Seed random with our magic number
     srand(42);
 
+    int specialCase = handleSpecialCase(game);
+    if (specialCase != -1)
+        return specialCase;
+
     // Allocate our root
     MCnode *root = calloc(1, sizeof(MCnode));
 
     // Search the tree
     mcts(game, root);
-
 
     int *possibleMoves = get_possible_moves(game);
     int move = bestMove(root->scores, SIMULATIONS, possibleMoves);
@@ -286,32 +289,74 @@ int fast_check_status(const struct connect4 *game) {
     return CATS;
 }
 
-Locations * CollectWinLocations(const struct connect4 *game, const char player) {
-	int i, j;
+int handleSpecialCase(const struct connect4 *game) {
+    const char me = game->whoseTurn;
+    struct connect4 tempGame;
+
+    int i, crazyTown = 0;
+    for (i = 0; i < NUM_COLS; i++) {
+        if (i != NUM_COLS/2 && game->board[0][i] != EMPTY)
+            crazyTown = 1;
+    }
+    if (!crazyTown && !not_valid(game, NUM_COLS/2)) return NUM_COLS/2;
+
+    // This is the part that needs to be replaced
+    const int winCondition = me == PLAYERONE ? X_WINS : O_WINS;
+    for (i = 0; i < NUM_COLS; i++) {
+        memcpy(&tempGame, game, sizeof(struct connect4));
+        move(&tempGame, i, me);
+        if (fast_check_status(&tempGame) == winCondition)
+            return i;
+    }
+
+    const int lossCondition = me == PLAYERONE ? O_WINS : X_WINS;
+    for (i = 0; i < NUM_COLS; i++) {
+        memcpy(&tempGame, game, sizeof(struct connect4));
+        move(&tempGame, i, me);
+        if (fast_check_status(&tempGame) == lossCondition)
+            return i;
+    }
+
+    return -1;
+}
+/*
+int CollectWinLocations(const struct connect4 *game) {
+	int col;
 	Locations * temp = new_Locations();
 
-	/* Check if the current position is a 2win or 3win for the player or opponent */
-	for (i = 0; i < NUM_ROWS; i++) {
-		for (j = 0; j < NUM_COLS; j++) {
-			WinType ret = Locations_CheckLocation(temp, game, i, j);
-			if (ret == OUR3WIN) temp->Our3Win = j;
-			if (ret == THEIR3WIN) temp->Their3Win = j;
-			if (ret == OUR2WIN) temp->Our2Win = j;
-			if (ret == THEIR2WIN) temp->Their2Win = j;
-		}
+	// Check if the current position is a 2win or 3win for the player or opponent
+	for (col = 0; col < NUM_ROWS; col++) {
+		int validRow = get_row(game, col);
+        WinType ret = Locations_CheckLocation(game, validRow, col);
+        if (ret == OUR3WIN) temp->Our3Win = col;
+        if (ret == THEIR3WIN) temp->Their3Win = col;
+        if (ret == OUR2WIN) temp->Our2Win = col;
+        if (ret == THEIR2WIN) temp->Their2Win = col;
 	}
-	return temp;
+
+    int ret = -1;
+    if (temp->Their2Win) ret = temp->Their2Win;
+    if (temp->Our2Win) ret = temp->Our2Win;
+    if (temp->Their3Win) ret = temp->Their3Win;
+    if (temp->Our3Win) ret = temp->Our3Win;
+
+    free(temp);
+
+    return ret;
+
 }
 
 Locations * new_Locations(void) {
-	Locations * temp = malloc(sizeof(Locations));
-	//set defaults
-	temp->Our3Win = temp->Our2Win = temp->Their3Win = temp->Their2Win = -1;
+	Locations * temp = calloc(1, sizeof(Locations));
 	
 	return temp;
 }
 
-WinType Locations_CheckLocation(Locations * location, const struct connect4 *game, int i, int j) {
+WinType Locations_CheckLocation(const struct connect4 *game, int i, int j) {
+    const int DXDYLENGTH = 4;
+    const int DX[] = {-1, -1, -1, 0};
+    const int DY[] = {-1, 1, 0, -1};
+
 	char currPos = game->board[i][j];
 	int k, l;
 	if (currPos == EMPTY && canMove(game, i, j)) {
@@ -341,15 +386,15 @@ WinType Locations_CheckLocation(Locations * location, const struct connect4 *gam
 	return NOWINS;
 }
 
-int isOnBoard(const struct connect4 *game, int i, int j) {
-	return !(i < 0 || j < 0 || j > NUM_ROWS - 1 || i > NUM_COLS - 1);
+int isOnBoard(int i, int j) {
+	return i >= 0 && j >= 0 && j < NUM_ROWS && i < NUM_COLS;
 }
 
 int canMove(const struct connect4 *game, int i, int j) {
-	if (isOnBoard(game, i, j)) {
-		if (isOnBoard(game, i - 1, j) && !(game->board[i - 1][j] == EMPTY))
+	if (isOnBoard(i, j)) {
+		if (isOnBoard(i - 1, j) && game->board[i - 1][j] != EMPTY)
 			return 1;
-		if (!isOnBoard(game, i - 1, j))
+		if (!isOnBoard(i - 1, j))
 			return 1; 
 	}	
 	return 0;
@@ -368,9 +413,9 @@ char is3Win(const struct connect4 *game, int * iPos, int * jPos) {
 		for (j = 0; j < 2; j++) {
 			int check3Us = 0;
 			int check3Them = 0;
-			for (i = 0; i < 3; j++) {
+			for (i = 0; i < 3; i++) {
 				int tmp = i + j * 4;
-				if(isOnBoard(game, iPos[tmp], jPos[tmp])) {
+				if(isOnBoard(iPos[tmp], jPos[tmp])) {
 					if (game->board[iPos[tmp]][jPos[tmp]] == us) 
 						check3Us++;
 					else if (game->board[iPos[tmp]][jPos[tmp]] != them)
@@ -403,7 +448,7 @@ char is2Win(const struct connect4 *game, int * iPos, int * jPos) {
 		
 		int flag = 1;
 		for (i = 0; i < 5; i++) {
-			if (!isOnBoard(game, iPos[i], jPos[i])) {
+			if (!isOnBoard(iPos[i], jPos[i])) {
 				 flag = 0;
 				 break;
 			}
@@ -426,7 +471,7 @@ char is2Win(const struct connect4 *game, int * iPos, int * jPos) {
 		
 		flag = 1;
 		for (i = 0; i < 5; i++) {
-			if(!isOnBoard(game, iPos[6 - i], jPos[6 - i])) {
+			if(!isOnBoard(iPos[6 - i], jPos[6 - i])) {
 				flag = 0;
 				break;
 			}
@@ -452,3 +497,5 @@ char is2Win(const struct connect4 *game, int * iPos, int * jPos) {
 	if (theyWon) return them;
 	return 0;
 }
+
+*/
