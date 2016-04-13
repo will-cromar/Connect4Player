@@ -110,7 +110,7 @@ int chooseMove(double *probabilities) {
     int i;
     for (i = 0; i < NUM_COLS; i++) {
         cumulativeProb += probabilities[i];
-        if (cumulativeProb <= roll) {
+        if (cumulativeProb >= roll) {
             return i;
         }
     }
