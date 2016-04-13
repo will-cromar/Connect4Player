@@ -33,8 +33,10 @@ int doBetter(const struct connect4 *game, int secondsleft) {
 // Upper confidence bound formula
 double UCB(int w_i, int n_i, int t) {
     // Offset to ensure all prior probabilities are > 0
+    // Also avoids NaNs
     w_i += 1;
     n_i += 1;
+    t += 1;
 
     return (double) w_i / n_i + DEFAULT_C_VAL * sqrt(log(t)/n_i);
 }
@@ -67,7 +69,8 @@ void computeWeightedProbs(double *probabilities, proportion *scores, int t) {
         denominator += numerators[i];
     }
 
-    for(i = 0; i < NUM_COLS; i++) probabilities[i] = numerators[i] / denominator;
+    for(i = 0; i < NUM_COLS; i++)
+        probabilities[i] = numerators[i] / denominator;
 }
 
 // Every path is given an equal weight
