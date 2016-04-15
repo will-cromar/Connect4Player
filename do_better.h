@@ -41,4 +41,5 @@ int handleSpecialCase(const struct connect4 *game);
 int isOnBoard(int i, int j);
 int canMove(const struct connect4 *game, int i, int j);
 char is3Win(const struct connect4 *game, int row, int col, int dir);
-
+int countOutwards(const struct connect4 * game, int row, int col, int dx, int dy, char piece);
+int max(int a, int b);

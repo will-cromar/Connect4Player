@@ -17,13 +17,12 @@ int doBetter(const struct connect4 *game, int secondsleft) {
     if (specialCase != -1)
         return specialCase;
 
-/*
+
 	int i;
 	for (i = 0; i < NUM_COLS; i++) {
 		if (!not_valid(game, i)) return i;
 	}
-	return 5;
-*/	
+/*	
     // Allocate our root
     MCnode *root = calloc(1, sizeof(MCnode));
 
@@ -38,6 +37,7 @@ int doBetter(const struct connect4 *game, int secondsleft) {
     free(possibleMoves);
 
     return move;
+*/
 }
 
 // Upper confidence bound formula
@@ -300,15 +300,8 @@ int handleSpecialCase(const struct connect4 *game) {
     // Play the center if there are no other moves
  	int center = NUM_COLS / 2;
     if (!not_valid(game, center)) {
-        int i, crazy = 0;
-        for (i = 0; i < NUM_COLS; i++) {
-            if (i != center && game->board[0][i] != EMPTY)
-                crazy = 1;
-        }
-
-        if (!crazy)
-            return center;
-    }
+   		if (!isCrazy(game)) return center; 
+	}
 
     int col;
 	int didTheyWin = -1;
@@ -323,6 +316,16 @@ int handleSpecialCase(const struct connect4 *game) {
 	return didTheyWin; 
 }
 
+int isCrazy(const struct connect4 *game) {
+    int i;
+    for (i = 0; i < NUM_COLS; i++) {
+    	if (i != 3 && game->board[0][i] != EMPTY)
+        	return 1;
+    }
+	
+	return 0;
+}
+
 char Locations_CheckLocation(const struct connect4 *game, int row, int col) {
     const int DXDYLENGTH = 8;
 	char currPos = game->board[row][col];
@@ -330,13 +333,11 @@ char Locations_CheckLocation(const struct connect4 *game, int row, int col) {
 	char theyWon = 0;
 	if (currPos == EMPTY && canMove(game, row, col)) {
 		
-		printf("I'm looking at (%d, %d)\n", row, col);
 		for (i = 0; i < DXDYLENGTH; i++) {
 			
 			char check = is3Win(game, row, col, i);
 
 			if (check) {
-				printf("There's a problem at (%d, %d), in dir %d\n", row, col, i);
 				if (check == game->whoseTurn) return check;
 				else theyWon = check;
 			}
@@ -364,35 +365,33 @@ char is3Win(const struct connect4 *game, int row, int col, int dir) {
     const int DX[] = {-1, -1, -1, 0, 0, 1, 1, 1};
     const int DY[] = {-1, 1, 0, -1, 1, 0, -1, 1};
 
-	int i, j;
 	char us = game->whoseTurn;
 	char them;
+	
 	if (us == 'X') them = 'O';
 	else them = 'X';
 		
 	int check3Us = 0;
 	int check3Them = 0;
-	
-	for (i = 1; i < 8; i++) {
-		int rowPos = row + DY[dir] * i;
-		int colPos = col + DX[dir] * i;
 
-		if(isOnBoard(rowPos, colPos)) {
-			if (game->board[rowPos][colPos] == us) { 
-				check3Us++;
-			}
-			else if (game->board[rowPos][colPos] == them) {
-				check3Them++;
-			}
-		}
-	}
+	check3Us += countOutwards(game, row, col, DX[dir], DY[dir], us) + countOutwards(game, row, col, -DX[dir], -DY[dir], us);
+	check3Them += countOutwards(game, row, col, DX[dir], DY[dir], them) + countOutwards(game, row, col, -DX[dir], -DY[dir], us);
 
-	if (check3Us == 3) return us;
-	if (check3Them == 3) return them; 
+	if (check3Us >= 3) return us;
+	if (check3Them >= 3) return them;
 
 	return 0;
+}
+
+int countOutwards(const struct connect4 * game, int row, int col, int dx, int dy, char piece) {
+	int newRow = row + dy;
+	int newCol = col + dx;
+	if (!isOnBoard(newRow, newCol) || game->board[newRow][newCol] != piece) return 0;
+	return 1 + countOutwards(game, newRow, newCol, dx, dy, piece);
 }
 
 int max(int a, int b) {
     return a < b ? a : b;
 }
+
+
