@@ -44,9 +44,9 @@ int doBetter(const struct connect4 *game, int secondsleft) {
 double UCB(int w_i, int n_i, int t) {
     // Offset to ensure all prior probabilities are > 0
     // Also avoids NaNs
-    w_i += 1;
-    n_i += 1;
-    t += 1;
+    w_i = max(w_i, 1);
+    n_i = max(n_i, 1);
+    t = max(t, 1);
 
     return (double) w_i / n_i + DEFAULT_C_VAL * sqrt(log(t)/n_i);
 }
@@ -58,7 +58,7 @@ int bestMove(proportion *scores, int t, int *possibleMoves) {
 
     int i;
     for(i = 0; i < NUM_COLS; i++) {
-        double weight = UCB(scores[i].w_i, scores[i].n_i, t);
+        double weight = (double) scores[i].w_i / max(scores[i].n_i, 1);
         //printf("Column %d has a weight of %g\n", i, weight);
         if (possibleMoves[i] == 1 && weight > greatest) {
             greatest = weight;
@@ -297,7 +297,20 @@ int fast_check_status(const struct connect4 *game) {
 }
 
 int handleSpecialCase(const struct connect4 *game) {
- 	int col;
+    // Play the center if there are no other moves
+ 	int center = NUM_COLS / 2;
+    if (!not_valid(game, center)) {
+        int i, crazy = 0;
+        for (i = 0; i < NUM_COLS; i++) {
+            if (i != center && game->board[0][i] != EMPTY)
+                crazy = 1;
+        }
+
+        if (!crazy)
+            return center;
+    }
+
+    int col;
 	int didTheyWin = -1;
 	
 	for (col = 0; col < NUM_COLS; col++) {
@@ -378,4 +391,8 @@ char is3Win(const struct connect4 *game, int row, int col, int dir) {
 	if (check3Them == 3) return them; 
 
 	return 0;
+}
+
+int max(int a, int b) {
+    return a < b ? a : b;
 }

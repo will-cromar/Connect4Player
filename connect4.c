@@ -15,6 +15,7 @@
 #endif
 
 #include "do_better.h"
+#include "old_db.h"
 
 int main() {
 
@@ -70,7 +71,6 @@ int main() {
 	        timespent = time(0);
 	        printf("Player 2, please enter your move\n");
 	        scanf("%d", &curmove);
-
             /*** Alternatively, you can get your move from a computer
                  player:
 

@@ -34,6 +34,7 @@ void computeUniformProbs(double *probabilities);
 void freeMCTree(MCnode *root);
 int fast_check_status(const struct connect4 *game);
 int handleSpecialCase(const struct connect4 *game);
+int max(int a, int b);
 
 char Locations_CheckLocation(const struct connect4 *game, int row, int col);
 int handleSpecialCase(const struct connect4 *game);
