@@ -17,6 +17,13 @@ int doBetter(const struct connect4 *game, int secondsleft) {
     if (specialCase != -1)
         return specialCase;
 
+/*
+	int i;
+	for (i = 0; i < NUM_COLS; i++) {
+		if (!not_valid(game, i)) return i;
+	}
+	return 5;
+*/	
     // Allocate our root
     MCnode *root = calloc(1, sizeof(MCnode));
 
@@ -290,100 +297,40 @@ int fast_check_status(const struct connect4 *game) {
 }
 
 int handleSpecialCase(const struct connect4 *game) {
-    const char me = game->whoseTurn;
-    struct connect4 tempGame;
-
-    int i, crazyTown = 0;
-    for (i = 0; i < NUM_COLS; i++) {
-        if (i != NUM_COLS/2 && game->board[0][i] != EMPTY)
-            crazyTown = 1;
-    }
-    if (!crazyTown && !not_valid(game, NUM_COLS/2)) return NUM_COLS/2;
-
-    // This is the part that needs to be replaced
-    const int winCondition = me == PLAYERONE ? X_WINS : O_WINS;
-    for (i = 0; i < NUM_COLS; i++) {
-        memcpy(&tempGame, game, sizeof(struct connect4));
-        move(&tempGame, i, me);
-        if (fast_check_status(&tempGame) == winCondition)
-            return i;
-    }
-
-    const int lossCondition = me == PLAYERONE ? O_WINS : X_WINS;
-    for (i = 0; i < NUM_COLS; i++) {
-        memcpy(&tempGame, game, sizeof(struct connect4));
-        move(&tempGame, i, me);
-        if (fast_check_status(&tempGame) == lossCondition)
-            return i;
-    }
-
-    return -1;
-}
-/*
-int CollectWinLocations(const struct connect4 *game) {
-	int col;
-	Locations * temp = new_Locations();
-
-	// Check if the current position is a 2win or 3win for the player or opponent
-	for (col = 0; col < NUM_ROWS; col++) {
+ 	int col;
+	int didTheyWin = -1;
+	
+	for (col = 0; col < NUM_COLS; col++) {
 		int validRow = get_row(game, col);
-        WinType ret = Locations_CheckLocation(game, validRow, col);
-        if (ret == OUR3WIN) temp->Our3Win = col;
-        if (ret == THEIR3WIN) temp->Their3Win = col;
-        if (ret == OUR2WIN) temp->Our2Win = col;
-        if (ret == THEIR2WIN) temp->Their2Win = col;
+		char whoWon = Locations_CheckLocation(game, validRow, col);
+		if (whoWon == game->whoseTurn) return col;
+		if (whoWon) didTheyWin = col;
 	}
 
-    int ret = -1;
-    if (temp->Their2Win) ret = temp->Their2Win;
-    if (temp->Our2Win) ret = temp->Our2Win;
-    if (temp->Their3Win) ret = temp->Their3Win;
-    if (temp->Our3Win) ret = temp->Our3Win;
-
-    free(temp);
-
-    return ret;
-
+	return didTheyWin; 
 }
 
-Locations * new_Locations(void) {
-	Locations * temp = calloc(1, sizeof(Locations));
-	
-	return temp;
-}
-
-WinType Locations_CheckLocation(const struct connect4 *game, int i, int j) {
-    const int DXDYLENGTH = 4;
-    const int DX[] = {-1, -1, -1, 0};
-    const int DY[] = {-1, 1, 0, -1};
-
-	char currPos = game->board[i][j];
-	int k, l;
-	if (currPos == EMPTY && canMove(game, i, j)) {
-		for (k = 0; k < DXDYLENGTH; k++) {
-			int iPos[7];            
-			int jPos[7];
+char Locations_CheckLocation(const struct connect4 *game, int row, int col) {
+    const int DXDYLENGTH = 8;
+	char currPos = game->board[row][col];
+	int i = 0;
+	char theyWon = 0;
+	if (currPos == EMPTY && canMove(game, row, col)) {
+		
+		printf("I'm looking at (%d, %d)\n", row, col);
+		for (i = 0; i < DXDYLENGTH; i++) {
 			
-			for (l = 0; l < 7; l++) {
-				iPos[l] = i + (l - 3) * DY[k];
-				jPos[l] = j + (l - 3) * DX[k];
-			}
-			
-			int check = is3Win(game, iPos, jPos);
+			char check = is3Win(game, row, col, i);
 
 			if (check) {
-				if (check == game->whoseTurn) return OUR3WIN;
-				else return THEIR3WIN;
+				printf("There's a problem at (%d, %d), in dir %d\n", row, col, i);
+				if (check == game->whoseTurn) return check;
+				else theyWon = check;
 			}
 			
-			check = is2Win(game, iPos, jPos);
-			if (check) {
-				if (check == game->whoseTurn) return OUR2WIN;
-				else return THEIR2WIN;
-			}
 		}
 	}
-	return NOWINS;
+	return theyWon;
 }
 
 int isOnBoard(int i, int j) {
@@ -396,106 +343,39 @@ int canMove(const struct connect4 *game, int i, int j) {
 			return 1;
 		if (!isOnBoard(i - 1, j))
 			return 1; 
-	}	
+	}
 	return 0;
 }
 
-char is3Win(const struct connect4 *game, int * iPos, int * jPos) {
+char is3Win(const struct connect4 *game, int row, int col, int dir) {
+    const int DX[] = {-1, -1, -1, 0, 0, 1, 1, 1};
+    const int DY[] = {-1, 1, 0, -1, 1, 0, -1, 1};
+
 	int i, j;
-		
-		char us = game->whoseTurn;
-		char them;
-		if (us == 'X') them = 'O';
-		else them = 'X';
-		
-		int theyWon = 0;
-
-		for (j = 0; j < 2; j++) {
-			int check3Us = 0;
-			int check3Them = 0;
-			for (i = 0; i < 3; i++) {
-				int tmp = i + j * 4;
-				if(isOnBoard(iPos[tmp], jPos[tmp])) {
-					if (game->board[iPos[tmp]][jPos[tmp]] == us) 
-						check3Us++;
-					else if (game->board[iPos[tmp]][jPos[tmp]] != them)
-						check3Them++;
-				}
-			}
-
-			if (check3Us == 3) return us;
-			if (check3Them == 3) theyWon++; 
-
-		}
-		
-		if (theyWon) return them;
-		
-		return 0;
-}
-
-char is2Win(const struct connect4 *game, int * iPos, int * jPos) {
-	int i, j;		
 	char us = game->whoseTurn;
 	char them;
 	if (us == 'X') them = 'O';
 	else them = 'X';
-	int theyWon = 0;
+		
+	int check3Us = 0;
+	int check3Them = 0;
+	
+	for (i = 1; i < 8; i++) {
+		int rowPos = row + DY[dir] * i;
+		int colPos = col + DX[dir] * i;
 
-	for (j = 0; j < 2; j++) {
-		char current;
-		if (j) current = us;
-		else current = them;
-		
-		int flag = 1;
-		for (i = 0; i < 5; i++) {
-			if (!isOnBoard(iPos[i], jPos[i])) {
-				 flag = 0;
-				 break;
+		if(isOnBoard(rowPos, colPos)) {
+			if (game->board[rowPos][colPos] == us) { 
+				check3Us++;
+			}
+			else if (game->board[rowPos][colPos] == them) {
+				check3Them++;
 			}
 		}
-		
-		if (flag) {
-			if (game->board[iPos[0]][jPos[0]] == EMPTY &&
-				game->board[iPos[1]][jPos[1]] == current &&
-				game->board[iPos[2]][jPos[2]] == current &&
-				game->board[iPos[3]][jPos[3]] == EMPTY &&
-				game->board[iPos[4]][jPos[4]] == EMPTY &&
-				canMove(game, iPos[0], jPos[0]) &&
-				canMove(game, iPos[3], jPos[3]) &&
-				canMove(game, iPos[4], jPos[4]) ) {
-				
-				if (current == us) return us;
-				else theyWon = 1;
-			}	
-		}
-		
-		flag = 1;
-		for (i = 0; i < 5; i++) {
-			if(!isOnBoard(iPos[6 - i], jPos[6 - i])) {
-				flag = 0;
-				break;
-			}
-		}
-		
-		if(flag) {
-			if (game->board[iPos[6]][jPos[6]] == EMPTY &&
-				game->board[iPos[5]][jPos[5]] == current &&
-				game->board[iPos[4]][jPos[4]] == current &&
-				game->board[iPos[3]][jPos[3]] == EMPTY &&
-				game->board[iPos[2]][jPos[2]] == EMPTY && 
-				canMove(game, iPos[6], jPos[6]) &&
-				canMove(game, iPos[3], jPos[3]) &&
-				canMove(game, iPos[2], jPos[2])) {
-				
-				if (current == us) return us;
-				else theyWon = 1;
-			}
-				
-		}
-
 	}
-	if (theyWon) return them;
+
+	if (check3Us == 3) return us;
+	if (check3Them == 3) return them; 
+
 	return 0;
 }
-
-*/
