@@ -6,7 +6,7 @@
 
 #include <string.h>
 
-#define SIMULATIONS 100000
+#define SIMULATIONS 75000
 #define NUM_MOVES NUM_ROWS*NUM_COLS
 
 int doBetter(const struct connect4 *game, int secondsleft) {
@@ -136,6 +136,7 @@ int chooseMove(double *probabilities) {
     return rand()%NUM_COLS;
 }
 
+// Perform a Monte-Carlo Tree Search
 void mcts(const struct connect4 *game, MCnode *root) {
     // For concision
     const char me = game->whoseTurn;
@@ -175,7 +176,7 @@ void mcts(const struct connect4 *game, MCnode *root) {
                 computeUniformProbs(probabilities);
 
             // Use probabilities to select the next node
-            int nextMove = -1;//handleSpecialCase(&tempGame);
+            int nextMove = handleSpecialCase(&tempGame);
             while (not_valid(&tempGame, nextMove))
                 nextMove = chooseMove(probabilities);
 
@@ -221,96 +222,6 @@ void freeMCTree(MCnode *root) {
     free(root);
 }
 
-/*
-// The older and faster version of check_status from con4lib.h
-// Credit to Arup Guha for this function
-int fast_check_status(const struct connect4 *game) {
-
-    int i, j;
-
-    // We go through each row, to look for a horizontal win.
-    for (j = 0; j < NUM_ROWS; j++) {
-
-        // We iterate through the possible column starting positions of four
-        // consecutive winning pieces.
-        for (i = 0; i < NUM_COLS - 3; i++) {
-
-            if ((game->board[j][i] == PLAYERONE) && (game->board[j][i + 1] == PLAYERONE) &&
-                (game->board[j][i + 2] == PLAYERONE) && (game->board[j][i + 3] == PLAYERONE))
-
-                return X_WINS;
-
-            else if ((game->board[j][i] == PLAYERTWO) && (game->board[j][i + 1] == PLAYERTWO) &&
-                     (game->board[j][i + 2] == PLAYERTWO) && (game->board[j][i + 3] == PLAYERTWO))
-
-                return O_WINS;
-        }
-    }
-
-    // We go through each column, to look for a vertical win.
-    for (j = 0; j < NUM_COLS; j++) {
-
-        // We iterate through possible row starting positions of four
-        // consecutive winning pieces.
-        for (i = 0; i < NUM_ROWS - 3; i++) {
-
-            if ((game->board[i][j] == PLAYERONE) && (game->board[i + 1][j] == PLAYERONE) &&
-                (game->board[i + 2][j] == PLAYERONE) && (game->board[i + 3][j] == PLAYERONE))
-
-                return X_WINS;
-
-            else if ((game->board[i][j] == PLAYERTWO) && (game->board[i + 1][j] == PLAYERTWO) &&
-                     (game->board[i + 2][j] == PLAYERTWO) && (game->board[i + 3][j] == PLAYERTWO))
-
-                return O_WINS;
-        }
-    }
-
-    // We start at the possible row positions for a "forward" diagonal.
-    for (i = 0; i < NUM_ROWS - 3; i++) {
-
-        // We start at the possible column positions.
-        for (j = 0; j < NUM_COLS - 3; j++) {
-
-            if ((game->board[i][j] == PLAYERONE) && (game->board[i + 1][j + 1] == PLAYERONE) &&
-                (game->board[i + 2][j + 2] == PLAYERONE) && (game->board[i + 3][j + 3] == PLAYERONE))
-
-                return X_WINS;
-
-            else if ((game->board[i][j] == PLAYERTWO) && (game->board[i + 1][j + 1] == PLAYERTWO) &&
-                     (game->board[i + 2][j + 2] == PLAYERTWO) && (game->board[i + 3][j + 3] == PLAYERTWO))
-
-                return O_WINS;
-        }
-    }
-
-    // We start at the possible row positions for a "backward" diagonal.
-    for (i = 0; i < NUM_ROWS - 3; i++) {
-
-        // Here are the possible column positions for a backwards diagonal.
-        for (j = NUM_COLS - 1; j > 2; j--) {
-
-            if ((game->board[i][j] == PLAYERONE) && (game->board[i + 1][j - 1] == PLAYERONE) &&
-                (game->board[i + 2][j - 2] == PLAYERONE) && (game->board[i + 3][j - 3] == PLAYERONE))
-
-                return X_WINS;
-
-            else if ((game->board[i][j] == PLAYERTWO) && (game->board[i + 1][j - 1] == PLAYERTWO) &&
-                     (game->board[i + 2][j - 2] == PLAYERTWO) && (game->board[i + 3][j - 3] == PLAYERTWO))
-
-                return O_WINS;
-        }
-    }
-
-    // See if there's an empty slot on the board.
-    for (i = 0; i < NUM_COLS; i++)
-        if (game->board[NUM_ROWS - 1][i] == EMPTY)
-            return NOT_OVER;
-
-    // If we get here, we have a CATS game.
-    return CATS;
-}
-*/
 //Finds the max of two numbers
 inline int max(int a, int b) {
     return a < b ? a : b;
