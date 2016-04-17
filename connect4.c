@@ -15,6 +15,7 @@
 #endif
 
 #include "do_better.h"
+#include "group3.h"
 #include "old_db.h"
 
 int main() {
@@ -39,7 +40,7 @@ int main() {
 
 	        // Time and retrieve the current computer player's move.
 	        timespent = time(0);
-            curmove = doBetter(&game, Xtime);
+            curmove = g3_move(&game, Xtime);
 	        timespent = time(0) - timespent;
 	        Xtime -= timespent;
 
@@ -69,14 +70,10 @@ int main() {
 
 	        // Time and retrieve the current computer player's move.
 	        timespent = time(0);
+
 	        printf("Player 2, please enter your move\n");
 	        scanf("%d", &curmove);
-            /*** Alternatively, you can get your move from a computer
-                 player:
-
-            curmove = arup_move(&game, Ytime);
-
-	        ***/
+            //curmove = doBetter(&game, Ytime);
 
 	        timespent = time(0) - timespent;
 	        printf("O, have chosen column %d\n", curmove);
