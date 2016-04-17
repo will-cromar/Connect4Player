@@ -8,12 +8,6 @@
 
 #define DEFAULT_C_VAL sqrt(2)
 
-
-/* Labels the different types of wins that can be returned from the CheckLocation function */
-typedef enum _WinType {
-    OUR3WIN, THEIR3WIN, OUR2WIN, THEIR2WIN, NOWINS
-} WinType;
-
 // Stores w_i (wins after move i) and n_i (number of simulations after i)
 typedef struct _proportion {
     int w_i, n_i;
@@ -36,10 +30,18 @@ int fast_check_status(const struct connect4 *game);
 int handleSpecialCase(const struct connect4 *game);
 int max(int a, int b);
 
-char Locations_CheckLocation(const struct connect4 *game, int row, int col);
 int handleSpecialCase(const struct connect4 *game);
-int isOnBoard(int i, int j);
-int canMove(const struct connect4 *game, int i, int j);
-char is3Win(const struct connect4 *game, int row, int col, int dir);
+
+/* All tied to finding a 3Win */
+int is3Win(const struct connect4 *game, int row, int col, char piece);
+int is3WinDirection(const struct connect4 *game, int row, int col, int dir, char piece);
 int countOutwards(const struct connect4 * game, int row, int col, int dx, int dy, char piece);
-int max(int a, int b);
+
+/* All tied to finding a 2Win */
+int is2Win(const struct connect4 *game, int row, int col, char piece);
+int is2WinDirection(const struct connect4 *game, int row, int col, int dir, char piece);
+
+/* Bools Used in code */
+int isSafe(const struct connect4 *game, int row, int col, char piece);
+int canMove(const struct connect4 *game, int i, int j);
+int isOnBoard(int i, int j);
