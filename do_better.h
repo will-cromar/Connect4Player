@@ -6,7 +6,11 @@
 #include "con4lib.h"
 #endif
 
+#define NUM_MOVES NUM_ROWS*NUM_COLS
+#define CENTER NUM_COLS / 2
+
 #define DEFAULT_C_VAL sqrt(2)
+#define SIMULATIONS 75000
 
 // Stores w_i (wins after move i) and n_i (number of simulations after i)
 typedef struct _proportion {
@@ -26,7 +30,6 @@ void mcts(const struct connect4 *game, MCnode *root);
 void computeWeightedProbs(double *probabilities, proportion *scores, int t);
 void computeUniformProbs(double *probabilities);
 void freeMCTree(MCnode *root);
-int fast_check_status(const struct connect4 *game);
 int handleSpecialCase(const struct connect4 *game);
 int max(int a, int b);
 

@@ -6,8 +6,7 @@
 
 #include <string.h>
 
-#define SIMULATIONS 75000
-#define NUM_MOVES NUM_ROWS*NUM_COLS
+
 
 int doBetter(const struct connect4 *game, int secondsleft) {
     // Seed random with our magic number
@@ -15,7 +14,7 @@ int doBetter(const struct connect4 *game, int secondsleft) {
 
     int specialCase = handleSpecialCase(game);
     if (specialCase != -1) {
-        puts("Moving based on special case");
+        //puts("Moving based on special case");
         return specialCase;
     }
 
@@ -241,9 +240,9 @@ inline int max(int a, int b) {
  
 int handleSpecialCase(const struct connect4 *game) {
     // Play the center if there are no other moves
-    if (!not_valid(game, 3)) {
+    if (!not_valid(game, CENTER)) {
 		//isCrazy checks if there are moves in other columns;
-   		if (!isCrazy(game)) return 3; 
+   		if (!isCrazy(game)) return CENTER;
 	}
 	
 	//Continue to checking for 3wins and 2wins if you shouldn't play the center
@@ -422,7 +421,7 @@ int isSafe(const struct connect4 *game, int row, int col, char piece) {
 	//Find out if they have a win if you put your piece in the location listed	
 	char them = other(piece);
     // Assume safe if the opponent cannot play above us. Otherwise, check for 3-win
-	int ret = !inbounds(row, col) ? 1 : !is3Win(testBoard, row+1, col, them);
+	int ret = !inbounds(row+1, col) ? 1 : !is3Win(testBoard, row+1, col, them);
 	
 	//free the copy of the board and return
 	free(testBoard);
