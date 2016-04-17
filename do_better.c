@@ -163,22 +163,27 @@ void mcts(const struct connect4 *game, MCnode *root) {
         // Play moves until the hypothetical game ends
         char winner = 0;
         while (winner == 0) {
+            // Break out if the hypothetical game is over
             if (!movesAvailable(&tempGame))
                 break;
 
             double probabilities[NUM_COLS];
             //const char currPlayer = tempGame.whoseTurn;
 
-            // Determine which probabilities to use
-            if (tempGame.whoseTurn == me)
-                computeWeightedProbs(probabilities, current->scores, t);
-            else
-                computeUniformProbs(probabilities);
-
-            // Use probabilities to select the next node
+            // Assume both players will go for special cases
             int nextMove = handleSpecialCase(&tempGame);
-            while (not_valid(&tempGame, nextMove))
-                nextMove = chooseMove(probabilities);
+            if (nextMove == -1) {
+                // Weight current player's path based on past success
+                if (tempGame.whoseTurn == me)
+                    computeWeightedProbs(probabilities, current->scores, t);
+                // If there was no immediate win, give all opponent paths an equal chance
+                else
+                    computeUniformProbs(probabilities);
+
+                // Use probabilities to select the next node
+                while (not_valid(&tempGame, nextMove))
+                    nextMove = chooseMove(probabilities);
+            }
 
             // Push the move onto the stack if this is our move
             if (tempGame.whoseTurn == me) {
