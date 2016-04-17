@@ -14,20 +14,18 @@ int doBetter(const struct connect4 *game, int secondsleft) {
     srand(42);
 
     int specialCase = handleSpecialCase(game);
-    if (specialCase != -1)
+    if (specialCase != -1) {
+        puts("Moving based on special case");
         return specialCase;
+    }
 
-	
+	/* // for testing
 	int col;
 
 	scanf("%d", &col);
 	return col;
+*/
 
-	int i;
-	for (i = 0; i < NUM_COLS; i++) {
-		if (!not_valid(game, i)) return i;
-	}
-/*
     // Allocate our root
     MCnode *root = calloc(1, sizeof(MCnode));
 
@@ -35,14 +33,13 @@ int doBetter(const struct connect4 *game, int secondsleft) {
     mcts(game, root);
 
     int *possibleMoves = get_possible_moves(game);
-    int move = bestMove(root->scores, SIMULATIONS, possibleMoves);
+    int move = bestMove(root->scores, possibleMoves);
 
     // Clean up
     freeMCTree(root);
     free(possibleMoves);
 
     return move;
-*/
 }
 
 // Upper confidence bound formula
@@ -57,7 +54,7 @@ double UCB(int w_i, int n_i, int t) {
 }
 
 // Determine the best move, given the scores, the number of simulations
-int bestMove(proportion *scores, int t, int *possibleMoves) {
+int bestMove(proportion *scores, int *possibleMoves) {
     double greatest = 0;
     int bestMove = -1;
 
@@ -74,6 +71,8 @@ int bestMove(proportion *scores, int t, int *possibleMoves) {
     return bestMove;
 }
 
+// Weight paths based on some function of their score
+// Returns a probability distribution
 void computeWeightedProbs(double *probabilities, proportion *scores, int t) {
     double numerators[NUM_COLS];
     double denominator = 0;
@@ -140,7 +139,7 @@ int chooseMove(double *probabilities) {
 void mcts(const struct connect4 *game, MCnode *root) {
     // For concision
     const char me = game->whoseTurn;
-    const int winCondition = me == PLAYERONE ? X_WINS : O_WINS;
+    //const int winCondition = me == PLAYERONE ? X_WINS : O_WINS;
 
     // Memory to do scratch-work in
     struct connect4 tempGame;
@@ -161,8 +160,11 @@ void mcts(const struct connect4 *game, MCnode *root) {
         s = 0;
 
         // Play moves until the hypothetical game ends
-        int statusCode = NOT_OVER;
-        while ((statusCode = fast_check_status(&tempGame)) == NOT_OVER) {
+        char winner = 0;
+        while (winner == 0) {
+            if (!movesAvailable(&tempGame))
+                break;
+
             double probabilities[NUM_COLS];
             //const char currPlayer = tempGame.whoseTurn;
 
@@ -173,25 +175,32 @@ void mcts(const struct connect4 *game, MCnode *root) {
                 computeUniformProbs(probabilities);
 
             // Use probabilities to select the next node
-            int move = -1;
-            while (not_valid(&tempGame, move))
-                move = chooseMove(probabilities);
+            int nextMove = -1;//handleSpecialCase(&tempGame);
+            while (not_valid(&tempGame, nextMove))
+                nextMove = chooseMove(probabilities);
 
             // Push the move onto the stack if this is our move
             if (tempGame.whoseTurn == me) {
                 //printf("Stack pointer at %d\n", s);
                 //print_board(&tempGame);
-                moveStack[s] = move;
+                moveStack[s] = nextMove;
                 nodeStack[s++] = current;
             }
 
-            tempGame.board[get_row(&tempGame, move)][move] = tempGame.whoseTurn;
-            tempGame.whoseTurn = other(tempGame.whoseTurn);
-            current = getNextNode(current, move);
+            // If the move would result in a winner or the game is CATS, break the loop
+            int validRow = get_row(&tempGame, nextMove);
+            if (is3Win(&tempGame, validRow, nextMove, tempGame.whoseTurn)) {
+                winner = tempGame.whoseTurn;
+            } else {
+                // Otherwise, play the move and keep playing
+                move(&tempGame, nextMove, tempGame.whoseTurn);
+                tempGame.whoseTurn = other(tempGame.whoseTurn);
+                current = getNextNode(current, nextMove);
+            }
         }
 
         // Determine if we won
-        int w = (statusCode == winCondition);
+        int w = (winner == me);
         // Backprop the result of the game
         backpropogate(nodeStack, moveStack, s - 1, w);
     }
@@ -199,6 +208,7 @@ void mcts(const struct connect4 *game, MCnode *root) {
     return;
 }
 
+// Clean up the Monte-Carlo Tree
 void freeMCTree(MCnode *root) {
     if (root == NULL)
         return;
@@ -211,7 +221,7 @@ void freeMCTree(MCnode *root) {
     free(root);
 }
 
-
+/*
 // The older and faster version of check_status from con4lib.h
 // Credit to Arup Guha for this function
 int fast_check_status(const struct connect4 *game) {
@@ -300,7 +310,7 @@ int fast_check_status(const struct connect4 *game) {
     // If we get here, we have a CATS game.
     return CATS;
 }
-
+*/
 //Finds the max of two numbers
 inline int max(int a, int b) {
     return a < b ? a : b;
@@ -329,7 +339,7 @@ int handleSpecialCase(const struct connect4 *game) {
 	char us = game->whoseTurn;
 	
 	//they have to be the opposite of our piece, so set them to the opposite of us
-	char them = us == 'X' ? 'O' : 'X';
+	char them = other(us);
 
 	//Check all of the columns for if we win by playing in the column or if we block their win
 	for (col = 0; col < NUM_COLS; col++) {
@@ -358,14 +368,14 @@ int handleSpecialCase(const struct connect4 *game) {
 				return col;
 			}
 		}
-		
+/*
 		//If your opponent has a 2win and its safe to block them, do it
 		if (is2Win(game, validRow, col, them)) {
 			if (isSafe(game, validRow, col, us)) {
 				didTheyWin = col;
 			}
 		}
-
+*/
 	}
 	
 
@@ -494,8 +504,9 @@ int isSafe(const struct connect4 *game, int row, int col, char piece) {
 	testBoard->board[row][col] = piece;
 	
 	//Find out if they have a win if you put your piece in the location listed	
-	char them = piece == 'X' ? 'O' : 'X';
-	int ret = !is3Win(testBoard, row+1, col, them);
+	char them = other(piece);
+    // Assume safe if the opponent cannot play above us. Otherwise, check for 3-win
+	int ret = !inbounds(row, col) ? 1 : !is3Win(testBoard, row+1, col, them);
 	
 	//free the copy of the board and return
 	free(testBoard);
@@ -517,4 +528,15 @@ int canMove(const struct connect4 *game, int i, int j) {
 			return 1; 
 	}
 	return 0;
+}
+
+// Returns 1 if there is at least one more available move
+int movesAvailable(const struct connect4 *game) {
+    int i;
+    for (i = 0; i < NUM_COLS; i++) {
+        if (game->board[NUM_ROWS - 1][i] == EMPTY)
+            return 1;
+    }
+
+    return 0;
 }

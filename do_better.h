@@ -20,7 +20,7 @@ typedef struct _MCnode {
 } MCnode;
 
 int doBetter(const struct connect4 *game, int secondsleft);
-int bestMove(proportion *scores, int t, int *possibleMoves);
+int bestMove(proportion *scores, int *possibleMoves);
 double UCB(int w_i, int n_i, int t);
 void mcts(const struct connect4 *game, MCnode *root);
 void computeWeightedProbs(double *probabilities, proportion *scores, int t);
@@ -45,3 +45,6 @@ int is2WinDirection(const struct connect4 *game, int row, int col, int dir, char
 int isSafe(const struct connect4 *game, int row, int col, char piece);
 int canMove(const struct connect4 *game, int i, int j);
 int isOnBoard(int i, int j);
+int isCrazy(const struct connect4 *game);
+int isSafe(const struct connect4 *game, int row, int col, char piece);
+int movesAvailable(const struct connect4 *game);
