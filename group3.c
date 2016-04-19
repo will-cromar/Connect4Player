@@ -23,20 +23,25 @@ int g3_move(const struct connect4 *game, int secondsleft) {
     return col;
 */
 
-    // Allocate our root
-    g3_MCnode *root = calloc(1, sizeof(g3_MCnode));
+    int nextMove;
+    if (secondsleft> 90) {
+        // Allocate our root
+        g3_MCnode *root = calloc(1, sizeof(g3_MCnode));
 
-    // Search the tree
-    g3_mcts(game, root);
+        // Search the tree
+        g3_mcts(game, root);
 
-    int *possibleMoves = get_possible_moves(game);
-    int move = g3_bestMove(root->scores, possibleMoves);
+        int *possibleMoves = get_possible_moves(game);
+        nextMove = g3_bestMove(root->scores, possibleMoves);
 
-    // Clean up
-    g3_freeMCTree(root);
-    free(possibleMoves);
+        // Clean up
+        g3_freeMCTree(root);
+        free(possibleMoves);
+    } else {
+        nextMove = g3_fastMove(game, secondsleft);
+    }
 
-    return move;
+    return g3_fastMove(game, secondsleft);
 }
 
 /*
@@ -182,6 +187,51 @@ void g3_mcts(const struct connect4 *game, g3_MCnode *root) {
     }
 
     return;
+}
+
+int g3_fastMove(const struct connect4 *game, int secondsLeft) {
+    const char me = game->whoseTurn;
+
+    struct connect4 tempGame;
+
+    g3_proportion weights[NUM_COLS];
+    memset(weights, 0, sizeof(weights));
+
+    srand(42);
+
+    int i;
+    for(i = 0; i < g3_SIMULATIONS; i++) {
+        memcpy(&tempGame, game, sizeof(struct connect4));
+        int firstMove = -1;
+        char winner = 0;
+        while (winner == 0 && g3_movesAvailable(&tempGame)) {
+            int nextMove = g3_handleSpecialCase(&tempGame);
+            // Try again if move is invalid
+            while (not_valid(&tempGame, nextMove))
+                nextMove = rand() % NUM_COLS; // Try again
+
+            if (firstMove == -1)
+                firstMove = nextMove;
+
+            // If the move would result in a winner or the game is CATS, break the loop
+            int validRow = get_row(&tempGame, nextMove);
+            if (g3_is3Win(&tempGame, validRow, nextMove, tempGame.whoseTurn)) {
+                winner = tempGame.whoseTurn;
+            } else {
+                // Otherwise, play the move and keep playing
+                move(&tempGame, nextMove, tempGame.whoseTurn);
+                tempGame.whoseTurn = other(tempGame.whoseTurn);
+            }
+        }
+
+        weights[firstMove].w_i += (winner == me);
+        weights[firstMove].n_i++;
+    }
+
+    int *possibleMoves = get_possible_moves(game);
+    int res = g3_bestMove(weights, possibleMoves);
+    free(possibleMoves);
+    return res;
 }
 
 // Determine the best move, given the scores, the number of simulations
