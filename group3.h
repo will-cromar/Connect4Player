@@ -10,7 +10,8 @@
 #define g3_CENTER NUM_COLS / 2
 
 #define g3_DEFAULT_C_VAL sqrt(2)
-#define g3_SIMULATIONS 50000
+#define g3_SIMULATIONS 75000
+#define g3_FAST_SIMULATIONS 1000
 
 // Stores w_i (wins after move i) and n_i (number of simulations after i)
 typedef struct _g3_proportion {
@@ -27,8 +28,8 @@ typedef struct _g3_MCnode {
 int g3_move(const struct connect4 *game, int secondsleft);
 int g3_handleSpecialCase(const struct connect4 *game);
 void g3_mcts(const struct connect4 *game, g3_MCnode *root);
-int g3_fastMove(const struct connect4 *game, int secondsLeft);
-int g3_bestMove(g3_proportion *scores, int *possibleMoves);
+int g3_fastMove(const struct connect4 *game, int *movesToExplore);
+int g3_bestMove(g3_proportion *scores, int *possibleMoves, const struct connect4 *game);
 
 // Support functions for Monte-Carlo Tree Search
 double g3_UCB(int w_i, int n_i, int t);

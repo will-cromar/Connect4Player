@@ -23,25 +23,26 @@ int g3_move(const struct connect4 *game, int secondsleft) {
     return col;
 */
 
+    int *possibleMoves = get_possible_moves(game);
+
     int nextMove;
-    if (secondsleft> 90) {
+    if (secondsleft > 20) {
         // Allocate our root
         g3_MCnode *root = calloc(1, sizeof(g3_MCnode));
 
         // Search the tree
         g3_mcts(game, root);
 
-        int *possibleMoves = get_possible_moves(game);
-        nextMove = g3_bestMove(root->scores, possibleMoves);
+        nextMove = g3_bestMove(root->scores, possibleMoves, game);
 
         // Clean up
         g3_freeMCTree(root);
         free(possibleMoves);
     } else {
-        nextMove = g3_fastMove(game, secondsleft);
+        nextMove = g3_fastMove(game, possibleMoves);
     }
 
-    return g3_fastMove(game, secondsleft);
+    return nextMove;
 }
 
 /*
@@ -86,6 +87,9 @@ int g3_handleSpecialCase(const struct connect4 *game) {
 
     //If there are no 3wins, check for 2wins
 
+    int enemy2Wins[NUM_COLS];
+    memset(enemy2Wins, 0, sizeof(enemy2Wins));
+
     //Check in each col if there is a 2win
     for (col = 0; col < NUM_COLS; col++) {
         int validRow = get_row(game, col);
@@ -96,19 +100,21 @@ int g3_handleSpecialCase(const struct connect4 *game) {
                 return col;
             }
         }
-/*
+
 		//If your opponent has a 2win and its safe to block them, do it
-		if (is2Win(game, validRow, col, them)) {
-			if (isSafe(game, validRow, col, us)) {
-				didTheyWin = col;
-			}
+		if (g3_is2Win(game, validRow, col, them) && g3_isSafe(game, validRow, col, us)) {
+			enemy2Wins[col] = 1;
 		}
-*/
+
     }
 
 
-    //returns either -1 or the column your opponent had a 2win in
-    return didTheyWin;
+    for (col = 0; col < NUM_COLS; col++) {
+        if (enemy2Wins[col] ==  1)
+            return g3_fastMove(game, enemy2Wins);
+    }
+
+    return -1;
 }
 
 // Perform a Monte-Carlo Tree Search
@@ -124,8 +130,15 @@ void g3_mcts(const struct connect4 *game, g3_MCnode *root) {
     int moveStack[g3_NUM_MOVES];
     int s = 0; // Stack pointer
 
+    static int runs = 0;
+    int numSims = g3_SIMULATIONS;// / 26 * (26 - runs);
+    runs++;
+
+    //puts("g");
+    printf("Running %d simulations\n", numSims);
+
     int t; // current number of simulations
-    for (t = 0; t < g3_SIMULATIONS; t++) {
+    for (t = 0; t < numSims; t++) {
         // Make a fresh copy of the game
         memcpy(&tempGame, game, sizeof(struct connect4));
 
@@ -137,10 +150,9 @@ void g3_mcts(const struct connect4 *game, g3_MCnode *root) {
 
         // Play moves until the hypothetical game ends
         char winner = 0;
-        while (winner == 0) {
-            // Break out if the hypothetical game is over
-            if (!g3_movesAvailable(&tempGame))
-                break;
+        while (winner == 0 && g3_movesAvailable(&tempGame)) {
+            if (s >= 26)
+                puts("Something's gone horribly wrong.");
 
             double probabilities[NUM_COLS];
             //const char currPlayer = tempGame.whoseTurn;
@@ -189,62 +201,77 @@ void g3_mcts(const struct connect4 *game, g3_MCnode *root) {
     return;
 }
 
-int g3_fastMove(const struct connect4 *game, int secondsLeft) {
+int g3_fastMove(const struct connect4 *game, int *movesToExplore) {
     const char me = game->whoseTurn;
 
     struct connect4 tempGame;
 
-    g3_proportion weights[NUM_COLS];
-    memset(weights, 0, sizeof(weights));
-
     srand(42);
 
-    int i;
-    for(i = 0; i < g3_SIMULATIONS; i++) {
-        memcpy(&tempGame, game, sizeof(struct connect4));
-        int firstMove = -1;
-        char winner = 0;
-        while (winner == 0 && g3_movesAvailable(&tempGame)) {
-            int nextMove = g3_handleSpecialCase(&tempGame);
-            // Try again if move is invalid
-            while (not_valid(&tempGame, nextMove))
-                nextMove = rand() % NUM_COLS; // Try again
+    int i, count;
+    for (i = 0; i < NUM_COLS; i++) {
+        if (movesToExplore[i] == 0)
+            continue;
 
-            if (firstMove == -1)
-                firstMove = nextMove;
+        // Clear space for wins
+        int wins[NUM_COLS];
+        memset(wins, 0, sizeof(wins));
 
-            // If the move would result in a winner or the game is CATS, break the loop
-            int validRow = get_row(&tempGame, nextMove);
-            if (g3_is3Win(&tempGame, validRow, nextMove, tempGame.whoseTurn)) {
-                winner = tempGame.whoseTurn;
-            } else {
-                // Otherwise, play the move and keep playing
-                move(&tempGame, nextMove, tempGame.whoseTurn);
-                tempGame.whoseTurn = other(tempGame.whoseTurn);
+        for (count = 0; count < g3_FAST_SIMULATIONS; count++) {
+            memcpy(&tempGame, game, sizeof(struct connect4));
+            int firstMove = -1;
+            char winner = 0;
+            while (winner == 0 && g3_movesAvailable(&tempGame)) {
+                int nextMove = g3_handleSpecialCase(&tempGame);
+                // Try again if move is invalid
+                while (not_valid(&tempGame, nextMove))
+                    nextMove = rand() % NUM_COLS; // Try again
+
+                if (firstMove == -1)
+                    firstMove = nextMove;
+
+                // If the move would result in a winner or the game is CATS, break the loop
+                int validRow = get_row(&tempGame, nextMove);
+                if (g3_is3Win(&tempGame, validRow, nextMove, tempGame.whoseTurn)) {
+                    winner = tempGame.whoseTurn;
+                } else {
+                    // Otherwise, play the move and keep playing
+                    move(&tempGame, nextMove, tempGame.whoseTurn);
+                    tempGame.whoseTurn = other(tempGame.whoseTurn);
+                }
+            }
+
+            wins[firstMove] += (winner == me);
+        }
+
+        int greatest = -1, greatestMove = -1;
+        for (i = 0; i < NUM_COLS; i++) {
+            if (wins[i] > greatest) {
+                greatest = wins[i];
+                greatestMove = i;
             }
         }
 
-        weights[firstMove].w_i += (winner == me);
-        weights[firstMove].n_i++;
+        return greatestMove;
     }
 
-    int *possibleMoves = get_possible_moves(game);
-    int res = g3_bestMove(weights, possibleMoves);
-    free(possibleMoves);
-    return res;
+    return -1;
 }
 
 // Determine the best move, given the scores, the number of simulations
-int g3_bestMove(g3_proportion *scores, int *possibleMoves) {
-    double greatest = 0;
+int g3_bestMove(g3_proportion *scores, int *possibleMoves, const struct connect4 *game) {
+    double greatest = -1;
     int bestMove = -1;
 
     int i;
     for(i = 0; i < NUM_COLS; i++) {
         double weight = (double) scores[i].w_i / g3_max(scores[i].n_i, 1);
+        int validRow = get_row(game, i);
+        int safe = g3_isSafe(game, validRow, i, game->whoseTurn);
         //printf("Column %d has a weight of %g\n", i, weight);
-        if (possibleMoves[i] == 1 && weight > greatest) {
-            greatest = weight;
+        if (possibleMoves[i] == 1 && weight > greatest &&
+                (safe || bestMove == -1)) {
+            if (safe) greatest = weight; // Only save the weight if it was a safe move
             bestMove = i;
         }
     }
