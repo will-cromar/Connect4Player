@@ -10,7 +10,7 @@
 #define g3_CENTER NUM_COLS / 2
 
 #define g3_DEFAULT_C_VAL sqrt(2)
-#define g3_SIMULATIONS 75000
+#define g3_SIMULATIONS 100000
 #define g3_FAST_SIMULATIONS 1000
 
 // Stores w_i (wins after move i) and n_i (number of simulations after i)
@@ -55,6 +55,7 @@ int g3_canMove(const struct connect4 *game, int i, int j);
 int g3_isOnBoard(int i, int j);
 int g3_isCrazy(const struct connect4 *game);
 int g3_movesAvailable(const struct connect4 *game);
+int g3_has3Wins(const struct connect4 *game);
 
 // Something that should already be in C
 int g3_max(int a, int b);

@@ -27,6 +27,7 @@ int g3_move(const struct connect4 *game, int secondsleft) {
 
     int nextMove;
     if (secondsleft > 20) {
+        puts("Slow move");
         // Allocate our root
         g3_MCnode *root = calloc(1, sizeof(g3_MCnode));
 
@@ -39,6 +40,7 @@ int g3_move(const struct connect4 *game, int secondsleft) {
         g3_freeMCTree(root);
         free(possibleMoves);
     } else {
+        puts("Fast move");
         nextMove = g3_fastMove(game, possibleMoves);
     }
 
@@ -158,7 +160,7 @@ void g3_mcts(const struct connect4 *game, g3_MCnode *root) {
             //const char currPlayer = tempGame.whoseTurn;
 
             // Assume both players will go for special cases
-            int nextMove = g3_handleSpecialCase(&tempGame);
+            int nextMove = g3_has3Wins(&tempGame);
             if (nextMove == -1) {
                 // Weight current player's path based on past success
                 if (tempGame.whoseTurn == me)
@@ -222,7 +224,7 @@ int g3_fastMove(const struct connect4 *game, int *movesToExplore) {
             int firstMove = -1;
             char winner = 0;
             while (winner == 0 && g3_movesAvailable(&tempGame)) {
-                int nextMove = g3_handleSpecialCase(&tempGame);
+                int nextMove = g3_has3Wins(&tempGame);
                 // Try again if move is invalid
                 while (not_valid(&tempGame, nextMove))
                     nextMove = rand() % NUM_COLS; // Try again
@@ -525,6 +527,18 @@ int g3_movesAvailable(const struct connect4 *game) {
     }
 
     return 0;
+}
+
+/* Checks if the current player has 3wins available */
+int g3_has3Wins(const struct connect4 *game) {
+    int col;
+    for (col = 0; col < NUM_COLS; col++) {
+        int validRow = get_row(game, col);
+        if (g3_is3Win(game, validRow, col, game->whoseTurn))
+            return col;
+    }
+
+    return -1;
 }
 
 //Finds the max of two numbers
