@@ -9,7 +9,7 @@
 #define g3_NUM_MOVES NUM_ROWS*NUM_COLS
 #define g3_CENTER NUM_COLS / 2
 
-#define g3_DEFAULT_C_VAL sqrt(2)
+#define g3_DEFAULT_C_VAL sqrt(1.5)
 #define g3_SIMULATIONS 40000
 #define g3_FAST_SIMULATIONS 1000
 

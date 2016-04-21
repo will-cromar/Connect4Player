@@ -133,7 +133,7 @@ void g3_mcts(const struct connect4 *game, g3_MCnode *root) {
     int s = 0; // Stack pointer
 
     static int runs = 0;
-    int numSims = g3_SIMULATIONS / 26 * (26 - runs);
+    int numSims = g3_max(g3_SIMULATIONS / 26 * (26 - runs), g3_SIMULATIONS);
     runs++;
 
     //puts("g");
@@ -541,5 +541,5 @@ int g3_has3Wins(const struct connect4 *game) {
 
 //Finds the max of two numbers
 inline int g3_max(int a, int b) {
-    return a < b ? a : b;
+    return a > b ? a : b;
 }
