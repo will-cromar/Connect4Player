@@ -26,8 +26,8 @@ int g3_move(const struct connect4 *game, int secondsleft) {
     int *possibleMoves = get_possible_moves(game);
 
     int nextMove;
-    if (secondsleft > 20) {
-        puts("Slow move");
+    if (secondsleft > 25) {
+        //puts("Slow move");
         // Allocate our root
         g3_MCnode *root = calloc(1, sizeof(g3_MCnode));
 
@@ -40,7 +40,7 @@ int g3_move(const struct connect4 *game, int secondsleft) {
         g3_freeMCTree(root);
         free(possibleMoves);
     } else {
-        puts("Fast move");
+        //puts("Fast move");
         nextMove = g3_fastMove(game, possibleMoves);
     }
 
@@ -102,20 +102,20 @@ int g3_handleSpecialCase(const struct connect4 *game) {
                 return col;
             }
         }
-
+/*
 		//If your opponent has a 2win and its safe to block them, do it
 		if (g3_is2Win(game, validRow, col, them) && g3_isSafe(game, validRow, col, us)) {
 			enemy2Wins[col] = 1;
 		}
-
+*/
     }
 
-
+/*
     for (col = 0; col < NUM_COLS; col++) {
         if (enemy2Wins[col] ==  1)
             return g3_fastMove(game, enemy2Wins);
     }
-
+*/
     return -1;
 }
 
@@ -133,11 +133,11 @@ void g3_mcts(const struct connect4 *game, g3_MCnode *root) {
     int s = 0; // Stack pointer
 
     static int runs = 0;
-    int numSims = g3_SIMULATIONS;// / 26 * (26 - runs);
+    int numSims = g3_SIMULATIONS / 26 * (26 - runs);
     runs++;
 
     //puts("g");
-    printf("Running %d simulations\n", numSims);
+    //printf("Running %d simulations\n", numSims);
 
     int t; // current number of simulations
     for (t = 0; t < numSims; t++) {
@@ -160,7 +160,7 @@ void g3_mcts(const struct connect4 *game, g3_MCnode *root) {
             //const char currPlayer = tempGame.whoseTurn;
 
             // Assume both players will go for special cases
-            int nextMove = g3_has3Wins(&tempGame);
+            int nextMove = g3_handleSpecialCase(&tempGame);
             if (nextMove == -1) {
                 // Weight current player's path based on past success
                 if (tempGame.whoseTurn == me)
@@ -188,7 +188,7 @@ void g3_mcts(const struct connect4 *game, g3_MCnode *root) {
                 winner = tempGame.whoseTurn;
             } else {
                 // Otherwise, play the move and keep playing
-                move(&tempGame, nextMove, tempGame.whoseTurn);
+                tempGame.board[get_row(&tempGame, nextMove)][nextMove] = tempGame.whoseTurn;
                 tempGame.whoseTurn = other(tempGame.whoseTurn);
                 current = g3_getNextNode(current, nextMove);
             }
@@ -208,29 +208,29 @@ int g3_fastMove(const struct connect4 *game, int *movesToExplore) {
 
     struct connect4 tempGame;
 
-    srand(42);
+    // Clear space for wins
+    int wins[NUM_COLS];
+    memset(wins, 0, sizeof(wins));
 
     int i, count;
     for (i = 0; i < NUM_COLS; i++) {
         if (movesToExplore[i] == 0)
             continue;
 
-        // Clear space for wins
-        int wins[NUM_COLS];
-        memset(wins, 0, sizeof(wins));
-
+        // Run a bunch of sims for this column
         for (count = 0; count < g3_FAST_SIMULATIONS; count++) {
             memcpy(&tempGame, game, sizeof(struct connect4));
-            int firstMove = -1;
+
+            // Play a move in the ith column
+            tempGame.board[get_row(&tempGame, i)][i] = tempGame.whoseTurn;
+            tempGame.whoseTurn = other(tempGame.whoseTurn);
+
             char winner = 0;
             while (winner == 0 && g3_movesAvailable(&tempGame)) {
                 int nextMove = g3_has3Wins(&tempGame);
                 // Try again if move is invalid
                 while (not_valid(&tempGame, nextMove))
                     nextMove = rand() % NUM_COLS; // Try again
-
-                if (firstMove == -1)
-                    firstMove = nextMove;
 
                 // If the move would result in a winner or the game is CATS, break the loop
                 int validRow = get_row(&tempGame, nextMove);
@@ -243,21 +243,19 @@ int g3_fastMove(const struct connect4 *game, int *movesToExplore) {
                 }
             }
 
-            wins[firstMove] += (winner == me);
+            wins[i] += (winner == me);
         }
-
-        int greatest = -1, greatestMove = -1;
-        for (i = 0; i < NUM_COLS; i++) {
-            if (wins[i] > greatest) {
-                greatest = wins[i];
-                greatestMove = i;
-            }
-        }
-
-        return greatestMove;
     }
 
-    return -1;
+    int greatest = -1, greatestMove = -1;
+    for (i = 0; i < NUM_COLS; i++) {
+        if (wins[i] > greatest) {
+            greatest = wins[i];
+            greatestMove = i;
+        }
+    }
+
+    return greatestMove;
 }
 
 // Determine the best move, given the scores, the number of simulations
