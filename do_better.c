@@ -54,7 +54,7 @@ double UCB(int w_i, int n_i, int t) {
 
 // Determine the best move, given the scores, the number of simulations
 int bestMove(proportion *scores, int *possibleMoves) {
-    double greatest = 0;
+    double greatest = -1;
     int bestMove = -1;
 
     int i;

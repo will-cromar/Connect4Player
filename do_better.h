@@ -10,7 +10,7 @@
 #define CENTER NUM_COLS / 2
 
 #define DEFAULT_C_VAL sqrt(2)
-#define SIMULATIONS 75000
+#define SIMULATIONS 40000
 
 // Stores w_i (wins after move i) and n_i (number of simulations after i)
 typedef struct _proportion {

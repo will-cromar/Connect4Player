@@ -72,8 +72,8 @@ int main() {
 	        timespent = time(0);
 
 	        printf("Player 2, please enter your move\n");
-	        scanf("%d", &curmove);
-            //curmove = doBetter(&game, Ytime);
+	        //scanf("%d", &curmove);
+            curmove = doBetter(&game, Ytime);
 
 	        timespent = time(0) - timespent;
 	        printf("O, have chosen column %d\n", curmove);
