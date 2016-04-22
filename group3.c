@@ -38,11 +38,12 @@ int g3_move(const struct connect4 *game, int secondsleft) {
 
         // Clean up
         g3_freeMCTree(root);
-        free(possibleMoves);
     } else {
         //puts("Fast move");
         nextMove = g3_fastMove(game, possibleMoves);
     }
+
+    free(possibleMoves);
 
     return nextMove;
 }
@@ -133,7 +134,7 @@ void g3_mcts(const struct connect4 *game, g3_MCnode *root) {
     int s = 0; // Stack pointer
 
     static int runs = 0;
-    int numSims = g3_max(g3_SIMULATIONS / 26 * (26 - runs), g3_SIMULATIONS);
+    int numSims = g3_max(g3_SIMULATIONS / 26 * (26 - runs), g3_FAST_SIMULATIONS);
     runs++;
 
     //puts("g");
